@@ -7,26 +7,29 @@ from translate import Translator
 
 
 def create_translation(json_file: str) -> dict:
-  translator = Translator('ms')
+  english_translator = Translator('en', 'ms', email='woojiahao1234@gmail.com')
+  malay_translator = Translator('ms', 'en', email='woojiahao1234@gmail.com')
 
   print(f'Translating {json_file} ...')
 
   with open(json_file, 'r') as file:
     data: dict = json.load(file)
 
-  print(data)
-
   translation = {}
 
   for category_name, category_values in data.items():
+    print(f'Category: {category_name}')
     translation[category_name] = {}
-    for category_value, category_value_index in category_values.items():
-      translated = translator.translate(category_value)
-      print(translated)
-      translation[category_name][category_value] = category_value_index
-      translation[category_name][translated] = category_value_index
 
-  print(translation)
+    for category_value, category_value_index in category_values.items():
+      english_translation = english_translator.translate(category_value)
+      malay_translation = malay_translator.translate(category_value)
+
+      print(f'\tEnglish translation: {english_translation} - {category_value_index}')
+      print(f'\tMalay translation: {malay_translation} - {category_value_index}')
+
+      translation[category_name][english_translation] = category_value_index
+      translation[category_name][malay_translation] = category_value_index
 
   print('Translations completed!')
 
