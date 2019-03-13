@@ -22,8 +22,7 @@ def analyze(csv: str, json: str, output: str):
     print(f'ERROR: json location {json} must point to a valid json file')
     return
 
-  print('Analyzing...')
-  tool.extract_data(csv, json, output)
+  tool.extract_data(csv, json)
 
 if __name__ == '__main__':
   analyze()
