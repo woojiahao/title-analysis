@@ -1,12 +1,13 @@
-from os.path import exists, isdir, isfile
+import time
 from os import mkdir
+from os.path import exists, isdir, isfile
 
 import click
 
 from click_utility import click_log, LOG_ERROR
+from tool.analyser import Analyser
 
 REASON_KEY = 'reason'
-STATUS_KEY = 'status'
 
 
 @click.command()
@@ -15,10 +16,12 @@ STATUS_KEY = 'status'
 @click.option('--json', '-j', help='Optional location for .json file, defaults to {base}/{category}.json')
 @click.option('--csv', '-c', help='Optional location for .csv file, defaults to {base}/{category}.csv')
 @click.option('--out', '-o', help='Optional output file location, defaults to {base}/out/')
+@click.option('--filename', '-fn', default='analysed.csv',
+              help='Optional file name for analyzed data, defaults to analysed.csv')
 @click.option('--accuracy', '-a',
               help='Optional comma-separated list of columns to output the accuracy for, defaults output nothing')
 @click.option('--mismatches', '-m', help='Optional path parameter to store mismatch data')
-def execute(base: str, category: str, json: str, csv: str, out: str, accuracy: str, mismatches: str):
+def execute(base: str, category: str, json: str, csv: str, out: str, filename: str, accuracy: str, mismatches: str):
   base = base.replace('\\', '/') if base is not None else base
   json = json.replace('\\', '/') if json is not None else json
   csv = csv.replace('\\', '/') if csv is not None else csv
@@ -64,6 +67,22 @@ def execute(base: str, category: str, json: str, csv: str, out: str, accuracy: s
   if not exists(out_path):
     mkdir(out_path)
 
+  # Validate filename
+  analysed_file_path = f'{out_path}{filename}'
+  is_filename_path_valid = validate_file_path(
+    analysed_file_path,
+    'Filename',
+    ('--filename', '-fn'),
+    False,
+    False,
+    'csv',
+    False
+  )
+
+  if not is_filename_path_valid[STATUS_KEY]:
+    click_log(LOG_ERROR, description=is_filename_path_valid[REASON_KEY], is_error=True)
+    return
+
   # Validate accuracies
   accuracies = [] if accuracy is None else accuracy.split(',')
 
@@ -89,8 +108,20 @@ def execute(base: str, category: str, json: str, csv: str, out: str, accuracy: s
   click_log(title='JSON path', description=json_path)
   click_log(title='CSV path', description=csv_path)
   click_log(title='Out path', description=out_path)
+  click_log(title='Analysed file path', description=analysed_file_path)
   click_log(title='Accuracies', description=str(accuracies))
   click_log(title='Mismatches path', description=mismatches_path)
+
+  before_time = time.time()
+  Analyser(base, category, json_path, csv_path, out_path, analysed_file_path, accuracies, mismatches_path).analyse()
+  after_time = time.time()
+  click_log(title='Time taken', description=f'{(after_time - before_time)}s')
+
+
+STATUS_KEY = 'status'
+
+
+# TODO: Add options for output name and redundant generation
 
 
 def validate_category(category: str) -> dict:
