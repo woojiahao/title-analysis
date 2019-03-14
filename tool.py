@@ -8,6 +8,7 @@ from click_utility import click_log, LOG_ERROR
 from tool.analyser import Analyser
 
 REASON_KEY = 'reason'
+STATUS_KEY = 'status'
 
 
 @click.command()
@@ -20,8 +21,8 @@ REASON_KEY = 'reason'
               help='Optional file name for analyzed data, defaults to analysed.csv')
 @click.option('--accuracy', '-a',
               help='Optional comma-separated list of columns to output the accuracy for, defaults output nothing')
-@click.option('--mismatches', '-m', help='Optional path parameter to store mismatch data')
-def execute(base: str, category: str, json: str, csv: str, out: str, filename: str, accuracy: str, mismatches: str):
+@click.option('--mismatches', '-m', help='Optional path parameter to store mismatch data', type=click.BOOL)
+def execute(base: str, category: str, json: str, csv: str, out: str, filename: str, accuracy: str, mismatches: bool):
   base = base.replace('\\', '/') if base is not None else base
   json = json.replace('\\', '/') if json is not None else json
   csv = csv.replace('\\', '/') if csv is not None else csv
@@ -86,23 +87,6 @@ def execute(base: str, category: str, json: str, csv: str, out: str, filename: s
   # Validate accuracies
   accuracies = [] if accuracy is None else accuracy.split(',')
 
-  # Validate mismatches
-  if mismatches is not None:
-    mismatches_path = f'{base}/{mismatches}'
-    is_mismatches_path_valid = validate_file_path(
-      mismatches_path,
-      'mismatches',
-      ('--mismatches', '-m'),
-      False,
-      does_exist=True
-    )
-
-    if not is_mismatches_path_valid[STATUS_KEY]:
-      click_log(LOG_ERROR, description=is_mismatches_path_valid[REASON_KEY], is_error=True)
-      return
-  else:
-    mismatches_path = None
-
   click_log(title='Base path', description=base)
   click_log(title='Category', description=category)
   click_log(title='JSON path', description=json_path)
@@ -110,18 +94,15 @@ def execute(base: str, category: str, json: str, csv: str, out: str, filename: s
   click_log(title='Out path', description=out_path)
   click_log(title='Analysed file path', description=analysed_file_path)
   click_log(title='Accuracies', description=str(accuracies))
-  click_log(title='Mismatches path', description=mismatches_path)
+  click_log(title='Mismatches', description=str(mismatches))
+  if mismatches:
+    for accuracy in accuracies:
+      click_log(title='Mismatches path', description=str(f'{out_path}{accuracy}_mismatches.json'))
 
   before_time = time.time()
-  Analyser(base, category, json_path, csv_path, out_path, analysed_file_path, accuracies, mismatches_path).analyse()
+  Analyser(base, category, json_path, csv_path, out_path, analysed_file_path, accuracies, mismatches).analyse()
   after_time = time.time()
   click_log(title='Time taken', description=f'{(after_time - before_time)}s')
-
-
-STATUS_KEY = 'status'
-
-
-# TODO: Add options for output name and redundant generation
 
 
 def validate_category(category: str) -> dict:
